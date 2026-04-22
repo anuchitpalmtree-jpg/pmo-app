@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
 import { Dashboard } from '@/components/pmo/tabs/Dashboard';
 import { Projects } from '@/components/pmo/tabs/Projects';
 import { RisksIssues } from '@/components/pmo/tabs/RisksIssues';
 import { MilestonesTab } from '@/components/pmo/tabs/MilestonesTab';
 import { Weekly } from '@/components/pmo/tabs/Weekly';
 import { Alignment } from '@/components/pmo/tabs/Alignment';
+import { DataManager } from '@/components/pmo/tabs/DataManager';
 import { storageGet, storageSet } from '@/lib/storage';
 import { DEFAULT_PMO_DATA } from '@/data/seeds';
 import { uid, weekNum } from '@/lib/pmo-utils';
@@ -67,12 +67,6 @@ export default function Page() {
     update(key, (data[key] as Array<{ id: string }>).filter(x => x.id !== id) as PMOData[K]);
   };
 
-  const handleReset = async () => {
-    if (!confirm('⚠️ ต้องการ Reset ข้อมูลทั้งหมดกลับไปเป็นค่าเริ่มต้น?')) return;
-    await storageSet(DEFAULT_PMO_DATA);
-    setData(DEFAULT_PMO_DATA);
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-[#F0EDE6]">
@@ -99,7 +93,6 @@ export default function Page() {
         </div>
         <div className="flex items-center gap-4 text-xs">
           <span className="opacity-70">📅 Wk{weekNum()}/{new Date().getFullYear() + 543}</span>
-          <Button size="sm" onClick={handleReset} className="bg-[#C93B2E] text-[11px] text-white hover:bg-[#b03228]">🔄 Reset</Button>
         </div>
       </div>
 
@@ -113,6 +106,7 @@ export default function Page() {
             { value: 'milestones', icon: '🏁', label: 'Milestones' },
             { value: 'weekly', icon: '📋', label: 'รายงานสัปดาห์' },
             { value: 'alignment', icon: '🎯', label: 'Alignment' },
+            { value: 'data-manager', icon: '🧪', label: 'Manage Data' },
           ].map(t => (
             <TabsTrigger
               key={t.value}
@@ -169,6 +163,10 @@ export default function Page() {
 
           <TabsContent value="alignment" className="mt-0">
             <Alignment data={data} />
+          </TabsContent>
+
+          <TabsContent value="data-manager" className="mt-0">
+            <DataManager data={data} onReplace={update} />
           </TabsContent>
         </div>
       </Tabs>

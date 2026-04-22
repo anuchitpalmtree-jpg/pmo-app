@@ -1,65 +1,177 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { Dashboard } from '@/components/pmo/tabs/Dashboard';
+import { Projects } from '@/components/pmo/tabs/Projects';
+import { RisksIssues } from '@/components/pmo/tabs/RisksIssues';
+import { MilestonesTab } from '@/components/pmo/tabs/MilestonesTab';
+import { Weekly } from '@/components/pmo/tabs/Weekly';
+import { Alignment } from '@/components/pmo/tabs/Alignment';
+import { storageGet, storageSet } from '@/lib/storage';
+import { DEFAULT_PMO_DATA } from '@/data/seeds';
+import { uid, weekNum } from '@/lib/pmo-utils';
+import type { PMOData, PMOStats, Project, Risk, Issue, Milestone, WeeklyNote } from '@/types/pmo';
+
+export default function Page() {
+  const [data, setData] = useState<PMOData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      let d = await storageGet();
+      if (!d) {
+        d = DEFAULT_PMO_DATA;
+        await storageSet(d);
+      }
+      setData(d);
+      setLoading(false);
+    })();
+  }, []);
+
+  const save = useCallback(async (newData: PMOData) => {
+    setData(newData);
+    await storageSet(newData);
+  }, []);
+
+  const update = useCallback(<K extends keyof PMOData>(key: K, items: PMOData[K]) => {
+    if (!data) return;
+    save({ ...data, [key]: items });
+  }, [data, save]);
+
+  const stats = useMemo<PMOStats>(() => {
+    if (!data) return { total: 0, totalBudget: 0, totalSpent: 0, avgSPI: '0', avgCPI: '0', byStatus: {}, disbursement: 0 };
+    const ps = data.projects;
+    const totalBudget = ps.reduce((s, p) => s + (p.budget || 0), 0);
+    const totalSpent = ps.reduce((s, p) => s + (p.spent || 0), 0);
+    const avgSPI = ps.length ? (ps.reduce((s, p) => s + (p.spi || 0), 0) / ps.length).toFixed(2) : '0';
+    const avgCPI = ps.length ? (ps.reduce((s, p) => s + (p.cpi || 0), 0) / ps.length).toFixed(2) : '0';
+    const byStatus: Record<string, number> = {};
+    ps.forEach(p => { byStatus[p.status] = (byStatus[p.status] || 0) + 1; });
+    return { total: ps.length, totalBudget, totalSpent, avgSPI, avgCPI, byStatus, disbursement: totalBudget ? Math.round(totalSpent / totalBudget * 100) : 0 };
+  }, [data]);
+
+  const addItem = <K extends keyof PMOData>(key: K, item: Omit<PMOData[K][number], 'id'>) => {
+    if (!data) return;
+    update(key, [...data[key], { ...item, id: uid() }] as PMOData[K]);
+  };
+
+  const updateItem = <K extends keyof PMOData>(key: K, id: string, item: Omit<PMOData[K][number], 'id'>) => {
+    if (!data) return;
+    update(key, (data[key] as Array<{ id: string }>).map(x => x.id === id ? { ...x, ...item } : x) as PMOData[K]);
+  };
+
+  const deleteItem = <K extends keyof PMOData>(key: K, id: string) => {
+    if (!data) return;
+    update(key, (data[key] as Array<{ id: string }>).filter(x => x.id !== id) as PMOData[K]);
+  };
+
+  const handleReset = async () => {
+    if (!confirm('⚠️ ต้องการ Reset ข้อมูลทั้งหมดกลับไปเป็นค่าเริ่มต้น?')) return;
+    await storageSet(DEFAULT_PMO_DATA);
+    setData(DEFAULT_PMO_DATA);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-[#F0EDE6]">
+        <div className="text-center">
+          <div className="text-5xl mb-3">📮</div>
+          <div className="text-lg font-bold text-[#1A2744]">กำลังโหลด PMO Dashboard...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!data) return null;
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="min-h-screen bg-[#F0EDE6] text-[#1A2744]">
+      {/* Top Bar */}
+      <div className="bg-[#1A2744] text-white px-6 h-14 flex items-center justify-between sticky top-0 z-50 shadow-lg">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 bg-[#D4382C] rounded-lg flex items-center justify-center font-black text-sm tracking-tight">TH</div>
+          <div>
+            <div className="font-bold text-[15px]">ไปรษณีย์ไทย — PMO</div>
+            <div className="text-[10px] opacity-60 tracking-widest">PROJECT MANAGEMENT OFFICE</div>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+        <div className="flex items-center gap-4 text-xs">
+          <span className="opacity-70">📅 Wk{weekNum()}/{new Date().getFullYear() + 543}</span>
+          <Button size="sm" onClick={handleReset} className="bg-[#C93B2E] text-[11px] text-white hover:bg-[#b03228]">🔄 Reset</Button>
+        </div>
+      </div>
+
+      {/* Main Tabs */}
+      <Tabs defaultValue="dashboard" className="w-full">
+        <TabsList className="w-full justify-start rounded-none bg-white border-b border-[#E4E0D8] h-auto px-0 overflow-x-auto">
+          {[
+            { value: 'dashboard', icon: '📊', label: 'Dashboard' },
+            { value: 'projects', icon: '📁', label: 'โครงการ' },
+            { value: 'risks', icon: '⚠️', label: 'Risk & Issues' },
+            { value: 'milestones', icon: '🏁', label: 'Milestones' },
+            { value: 'weekly', icon: '📋', label: 'รายงานสัปดาห์' },
+            { value: 'alignment', icon: '🎯', label: 'Alignment' },
+          ].map(t => (
+            <TabsTrigger
+              key={t.value}
+              value={t.value}
+              className="rounded-none border-b-[3px] border-transparent data-[state=active]:border-[#D4382C] data-[state=active]:bg-transparent data-[state=active]:text-[#1A2744] data-[state=active]:font-extrabold text-[#7A8699] font-medium px-5 py-3.5 text-[13px] whitespace-nowrap transition-all"
+            >
+              {t.icon} {t.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+
+        <div className="max-w-[1400px] mx-auto px-6 py-5 pb-16">
+          <TabsContent value="dashboard" className="mt-0">
+            <Dashboard data={data} stats={stats} />
+          </TabsContent>
+
+          <TabsContent value="projects" className="mt-0">
+            <Projects
+              data={data}
+              onAdd={f => addItem('projects', f as Omit<Project, 'id'>)}
+              onUpdate={(id, f) => updateItem('projects', id, f as Omit<Project, 'id'>)}
+              onDelete={id => deleteItem('projects', id)}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+          </TabsContent>
+
+          <TabsContent value="risks" className="mt-0">
+            <RisksIssues
+              data={data}
+              onAddRisk={f => addItem('risks', f)}
+              onUpdateRisk={(id, f) => updateItem('risks', id, f)}
+              onDeleteRisk={id => deleteItem('risks', id)}
+              onAddIssue={f => addItem('issues', f)}
+              onUpdateIssue={(id, f) => updateItem('issues', id, f)}
+              onDeleteIssue={id => deleteItem('issues', id)}
+            />
+          </TabsContent>
+
+          <TabsContent value="milestones" className="mt-0">
+            <MilestonesTab
+              data={data}
+              onAdd={f => addItem('milestones', f)}
+              onUpdate={(id, f) => updateItem('milestones', id, f)}
+              onDelete={id => deleteItem('milestones', id)}
+            />
+          </TabsContent>
+
+          <TabsContent value="weekly" className="mt-0">
+            <Weekly
+              data={data}
+              stats={stats}
+              onSaveNote={notes => update('weeklyNotes', notes)}
+            />
+          </TabsContent>
+
+          <TabsContent value="alignment" className="mt-0">
+            <Alignment data={data} />
+          </TabsContent>
         </div>
-      </main>
+      </Tabs>
     </div>
   );
 }

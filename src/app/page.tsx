@@ -10,7 +10,12 @@ import { Weekly } from '@/components/pmo/tabs/Weekly';
 import { Alignment } from '@/components/pmo/tabs/Alignment';
 import { DataManager } from '@/components/pmo/tabs/DataManager';
 import { storageGet, storageSet } from '@/lib/storage';
-import { DEFAULT_PMO_DATA } from '@/data/seeds';
+import {
+  DEFAULT_PMO_DATA,
+  ALIGNMENT_SETTINGS_SEED,
+  STRATEGIC_GOALS_SEED,
+  PROJECT_GOAL_ALIGNMENTS_SEED,
+} from '@/data/seeds';
 import { uid, weekNum } from '@/lib/pmo-utils';
 import type { PMOData, PMOStats, Project, Risk, Issue, Milestone, WeeklyNote } from '@/types/pmo';
 
@@ -24,6 +29,19 @@ export default function Page() {
       if (!d) {
         d = DEFAULT_PMO_DATA;
         await storageSet(d);
+      } else {
+        const needsAlignmentSettings = !Array.isArray(d.alignmentSettings);
+        const needsStrategicGoals = !Array.isArray(d.strategicGoals);
+        const needsProjectGoalAlignments = !Array.isArray(d.projectGoalAlignments);
+        if (needsAlignmentSettings || needsStrategicGoals || needsProjectGoalAlignments) {
+          d = {
+            ...d,
+            alignmentSettings: needsAlignmentSettings ? ALIGNMENT_SETTINGS_SEED : d.alignmentSettings,
+            strategicGoals: needsStrategicGoals ? STRATEGIC_GOALS_SEED : d.strategicGoals,
+            projectGoalAlignments: needsProjectGoalAlignments ? PROJECT_GOAL_ALIGNMENTS_SEED : d.projectGoalAlignments,
+          };
+          await storageSet(d);
+        }
       }
       setData(d);
       setLoading(false);
@@ -162,7 +180,7 @@ export default function Page() {
           </TabsContent>
 
           <TabsContent value="alignment" className="mt-0">
-            <Alignment data={data} />
+            <Alignment data={data} onReplace={update} />
           </TabsContent>
 
           <TabsContent value="data-manager" className="mt-0">

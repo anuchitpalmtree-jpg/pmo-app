@@ -77,6 +77,23 @@ export interface WeeklyNote {
   createdAt: string;
 }
 
+export interface AlignmentSetting {
+  id: string;
+  vision: string;
+}
+
+export interface StrategicGoal {
+  id: string;
+  name: string;
+  order: number;
+}
+
+export interface ProjectGoalAlignment {
+  id: string;
+  projectId: string;
+  goalId: string;
+}
+
 export interface PMOData {
   portfolios: Portfolio[];
   programs: Program[];
@@ -85,6 +102,9 @@ export interface PMOData {
   issues: Issue[];
   milestones: Milestone[];
   weeklyNotes: WeeklyNote[];
+  alignmentSettings: AlignmentSetting[];
+  strategicGoals: StrategicGoal[];
+  projectGoalAlignments: ProjectGoalAlignment[];
 }
 
 export interface PMOStats {

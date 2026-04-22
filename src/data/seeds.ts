@@ -1,4 +1,7 @@
-import type { Portfolio, Program, Project, Risk, Issue, Milestone, WeeklyNote } from '@/types/pmo';
+import type {
+  Portfolio, Program, Project, Risk, Issue, Milestone, WeeklyNote,
+  AlignmentSetting, StrategicGoal, ProjectGoalAlignment,
+} from '@/types/pmo';
 
 const today = () => new Date().toISOString().split('T')[0];
 const weekNum = () => {
@@ -67,6 +70,50 @@ export const WEEKLY_NOTES_SEED: WeeklyNote[] = [
   },
 ];
 
+export const ALIGNMENT_SETTINGS_SEED: AlignmentSetting[] = [
+  {
+    id: 'as1',
+    vision: 'ผู้นำโลจิสติกส์และบริการไปรษณีย์ดิจิทัลของอาเซียน',
+  },
+];
+
+export const STRATEGIC_GOALS_SEED: StrategicGoal[] = [
+  { id: 'sg1', name: 'เพิ่มรายได้', order: 1 },
+  { id: 'sg2', name: 'ลดต้นทุน', order: 2 },
+  { id: 'sg3', name: 'ยกระดับบริการ', order: 3 },
+  { id: 'sg4', name: 'Digital First', order: 4 },
+  { id: 'sg5', name: 'พัฒนาคน', order: 5 },
+  { id: 'sg6', name: 'ESG', order: 6 },
+];
+
+export const PROJECT_GOAL_ALIGNMENTS_SEED: ProjectGoalAlignment[] = [
+  { id: 'pga1', projectId: 'p1', goalId: 'sg1' },
+  { id: 'pga2', projectId: 'p1', goalId: 'sg2' },
+  { id: 'pga3', projectId: 'p1', goalId: 'sg3' },
+  { id: 'pga4', projectId: 'p1', goalId: 'sg4' },
+  { id: 'pga5', projectId: 'p2', goalId: 'sg1' },
+  { id: 'pga6', projectId: 'p2', goalId: 'sg3' },
+  { id: 'pga7', projectId: 'p2', goalId: 'sg4' },
+  { id: 'pga8', projectId: 'p3', goalId: 'sg2' },
+  { id: 'pga9', projectId: 'p3', goalId: 'sg3' },
+  { id: 'pga10', projectId: 'p3', goalId: 'sg4' },
+  { id: 'pga11', projectId: 'p3', goalId: 'sg6' },
+  { id: 'pga12', projectId: 'p4', goalId: 'sg1' },
+  { id: 'pga13', projectId: 'p4', goalId: 'sg2' },
+  { id: 'pga14', projectId: 'p4', goalId: 'sg3' },
+  { id: 'pga15', projectId: 'p4', goalId: 'sg6' },
+  { id: 'pga16', projectId: 'p5', goalId: 'sg2' },
+  { id: 'pga17', projectId: 'p5', goalId: 'sg4' },
+  { id: 'pga18', projectId: 'p5', goalId: 'sg6' },
+  { id: 'pga19', projectId: 'p6', goalId: 'sg2' },
+  { id: 'pga20', projectId: 'p6', goalId: 'sg4' },
+  { id: 'pga21', projectId: 'p6', goalId: 'sg5' },
+  { id: 'pga22', projectId: 'p7', goalId: 'sg1' },
+  { id: 'pga23', projectId: 'p7', goalId: 'sg3' },
+  { id: 'pga24', projectId: 'p7', goalId: 'sg4' },
+  { id: 'pga25', projectId: 'p8', goalId: 'sg5' },
+];
+
 export const DEFAULT_PMO_DATA = {
   portfolios: PORTFOLIOS_SEED,
   programs: PROGRAMS_SEED,
@@ -75,4 +122,7 @@ export const DEFAULT_PMO_DATA = {
   issues: ISSUES_SEED,
   milestones: MILESTONES_SEED,
   weeklyNotes: WEEKLY_NOTES_SEED,
+  alignmentSettings: ALIGNMENT_SETTINGS_SEED,
+  strategicGoals: STRATEGIC_GOALS_SEED,
+  projectGoalAlignments: PROJECT_GOAL_ALIGNMENTS_SEED,
 };

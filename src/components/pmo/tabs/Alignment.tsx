@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,7 @@ interface AlignmentProps {
 }
 
 export function Alignment({ data, onReplace }: AlignmentProps) {
+  const [isEditing, setIsEditing] = useState(false);
   const getPortfolio = (id: string) => data.portfolios.find(p => p.id === id);
   const goals = useMemo(
     () => [...data.strategicGoals].sort((a, b) => a.order - b.order),
@@ -68,40 +69,18 @@ export function Alignment({ data, onReplace }: AlignmentProps) {
 
   return (
     <div>
-      <div className="text-xl font-black text-[#1A2744] mb-1">🎯 Project Alignment</div>
-      <div className="text-sm text-[#7A8699] mb-5">ความสอดคล้องของโครงการกับยุทธศาสตร์องค์กร</div>
-
-      <Card className="mb-4 border-[#E4E0D8]">
-        <CardHeader className="py-3.5 px-5 border-b border-[#E4E0D8]">
-          <CardTitle className="text-[15px] font-black text-[#1A2744]">Alignment Editor (เฉพาะข้อมูลที่แก้จากแท็บนี้)</CardTitle>
-        </CardHeader>
-        <CardContent className="p-5 space-y-4">
-          <div>
-            <div className="text-[11px] font-bold text-[#7A8699] uppercase mb-1">Vision</div>
-            <Textarea
-              value={visionText}
-              onChange={e => setVision(e.target.value)}
-              rows={2}
-              placeholder="วิสัยทัศน์องค์กร"
-              className="text-[13px]"
-            />
-          </div>
-          <div>
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <div className="text-[11px] font-bold text-[#7A8699] uppercase">Strategic Goals</div>
-              <Button size="sm" onClick={addGoal} className="bg-[#1A2744] text-white hover:bg-[#121d33]">+ เพิ่มเป้าหมาย</Button>
-            </div>
-            <div className="space-y-2">
-              {goals.map(g => (
-                <div key={g.id} className="flex gap-2">
-                  <Input value={g.name} onChange={e => setGoalName(g.id, e.target.value)} className="text-[13px]" />
-                  <Button variant="outline" size="sm" onClick={() => removeGoal(g.id)}>ลบ</Button>
-                </div>
-              ))}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="mb-5 flex items-start justify-between gap-3">
+        <div>
+          <div className="text-xl font-black text-[#1A2744] mb-1">🎯 Project Alignment</div>
+          <div className="text-sm text-[#7A8699]">ความสอดคล้องของโครงการกับยุทธศาสตร์องค์กร</div>
+        </div>
+        <Button
+          onClick={() => setIsEditing(v => !v)}
+          className={isEditing ? 'bg-[#1A2744] text-white hover:bg-[#121d33]' : 'bg-[#D4382C] text-white hover:bg-[#c03020]'}
+        >
+          {isEditing ? 'ปิดการแก้ไข' : 'Edit'}
+        </Button>
+      </div>
 
       <Card className="mb-4 border-[#E4E0D8]">
         <CardHeader className="py-3.5 px-5 border-b border-[#E4E0D8]">
@@ -183,6 +162,40 @@ export function Alignment({ data, onReplace }: AlignmentProps) {
           <div className="text-[11px] text-[#7A8699] px-3 py-2">◉ = สอดคล้องโดยตรง (คลิกเพื่อสลับ) &nbsp;&nbsp; ○ = ไม่เกี่ยวข้องโดยตรง</div>
         </CardContent>
       </Card>
+
+      {isEditing && (
+        <Card className="mt-4 border-[#E4E0D8]">
+          <CardHeader className="py-3.5 px-5 border-b border-[#E4E0D8]">
+            <CardTitle className="text-[15px] font-black text-[#1A2744]">Alignment Editor (ส่วนปรับแก้ไข)</CardTitle>
+          </CardHeader>
+          <CardContent className="p-5 space-y-4">
+            <div>
+              <div className="text-[11px] font-bold text-[#7A8699] uppercase mb-1">Vision</div>
+              <Textarea
+                value={visionText}
+                onChange={e => setVision(e.target.value)}
+                rows={2}
+                placeholder="วิสัยทัศน์องค์กร"
+                className="text-[13px]"
+              />
+            </div>
+            <div>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="text-[11px] font-bold text-[#7A8699] uppercase">Strategic Goals</div>
+                <Button size="sm" onClick={addGoal} className="bg-[#1A2744] text-white hover:bg-[#121d33]">+ เพิ่มเป้าหมาย</Button>
+              </div>
+              <div className="space-y-2">
+                {goals.map(g => (
+                  <div key={g.id} className="flex gap-2">
+                    <Input value={g.name} onChange={e => setGoalName(g.id, e.target.value)} className="text-[13px]" />
+                    <Button variant="outline" size="sm" onClick={() => removeGoal(g.id)}>ลบ</Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

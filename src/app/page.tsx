@@ -16,29 +16,53 @@ import {
   STRATEGIC_GOALS_SEED,
   PROJECT_GOAL_ALIGNMENTS_SEED,
 } from '@/data/seeds';
-import { uid, weekNum } from '@/lib/pmo-utils';
+import { calculateProjectMetrics, uid, weekNum } from '@/lib/pmo-utils';
 import type { PMOData, PMOStats, Project, Risk, Issue, Milestone, WeeklyNote } from '@/types/pmo';
 
 export default function Page() {
   const [data, setData] = useState<PMOData | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const normalizeProjectFields = useCallback((project: Omit<Project, 'id'>): Omit<Project, 'id'> => {
+    const targetProgress = typeof project.targetProgress === 'number' ? project.targetProgress : project.progress;
+    const metrics = calculateProjectMetrics({ ...project, targetProgress });
+    return {
+      ...project,
+      targetProgress,
+      spi: metrics.spi ?? 0,
+      cpi: metrics.cpi ?? 0,
+      status: metrics.autoStatus,
+    };
+  }, []);
+
+  const normalizeProject = useCallback((project: Project): Project => {
+    const normalized = normalizeProjectFields(project);
+    return { ...normalized, id: project.id };
+  }, [normalizeProjectFields]);
+
   useEffect(() => {
     (async () => {
       let d = await storageGet();
       if (!d) {
-        d = DEFAULT_PMO_DATA;
+        d = {
+          ...DEFAULT_PMO_DATA,
+          projects: DEFAULT_PMO_DATA.projects.map(normalizeProject),
+        };
         await storageSet(d);
       } else {
         const needsAlignmentSettings = !Array.isArray(d.alignmentSettings);
         const needsStrategicGoals = !Array.isArray(d.strategicGoals);
         const needsProjectGoalAlignments = !Array.isArray(d.projectGoalAlignments);
-        if (needsAlignmentSettings || needsStrategicGoals || needsProjectGoalAlignments) {
+        const normalizedProjects = d.projects.map((project: Project) => normalizeProject(project));
+        const needsProjectNormalization = JSON.stringify(normalizedProjects) !== JSON.stringify(d.projects);
+
+        if (needsAlignmentSettings || needsStrategicGoals || needsProjectGoalAlignments || needsProjectNormalization) {
           d = {
             ...d,
             alignmentSettings: needsAlignmentSettings ? ALIGNMENT_SETTINGS_SEED : d.alignmentSettings,
             strategicGoals: needsStrategicGoals ? STRATEGIC_GOALS_SEED : d.strategicGoals,
             projectGoalAlignments: needsProjectGoalAlignments ? PROJECT_GOAL_ALIGNMENTS_SEED : d.projectGoalAlignments,
+            projects: normalizedProjects,
           };
           await storageSet(d);
         }
@@ -46,7 +70,7 @@ export default function Page() {
       setData(d);
       setLoading(false);
     })();
-  }, []);
+  }, [normalizeProject]);
 
   const save = useCallback(async (newData: PMOData) => {
     setData(newData);
@@ -63,8 +87,11 @@ export default function Page() {
     const ps = data.projects;
     const totalBudget = ps.reduce((s, p) => s + (p.budget || 0), 0);
     const totalSpent = ps.reduce((s, p) => s + (p.spent || 0), 0);
-    const avgSPI = ps.length ? (ps.reduce((s, p) => s + (p.spi || 0), 0) / ps.length).toFixed(2) : '0';
-    const avgCPI = ps.length ? (ps.reduce((s, p) => s + (p.cpi || 0), 0) / ps.length).toFixed(2) : '0';
+    const calculated = ps.map(project => calculateProjectMetrics(project));
+    const validSpi = calculated.map(m => m.spi).filter((v): v is number => v !== null);
+    const validCpi = calculated.map(m => m.cpi).filter((v): v is number => v !== null);
+    const avgSPI = validSpi.length ? (validSpi.reduce((s, value) => s + value, 0) / validSpi.length).toFixed(2) : '0';
+    const avgCPI = validCpi.length ? (validCpi.reduce((s, value) => s + value, 0) / validCpi.length).toFixed(2) : '0';
     const byStatus: Record<string, number> = {};
     ps.forEach(p => { byStatus[p.status] = (byStatus[p.status] || 0) + 1; });
     return { total: ps.length, totalBudget, totalSpent, avgSPI, avgCPI, byStatus, disbursement: totalBudget ? Math.round(totalSpent / totalBudget * 100) : 0 };
@@ -72,11 +99,26 @@ export default function Page() {
 
   const addItem = <K extends keyof PMOData>(key: K, item: Omit<PMOData[K][number], 'id'>) => {
     if (!data) return;
+    if (key === 'projects') {
+      const normalizedItem = normalizeProjectFields(item as Omit<Project, 'id'>);
+      update(key, [...data[key], { ...normalizedItem, id: uid() }] as PMOData[K]);
+      return;
+    }
     update(key, [...data[key], { ...item, id: uid() }] as PMOData[K]);
   };
 
   const updateItem = <K extends keyof PMOData>(key: K, id: string, item: Omit<PMOData[K][number], 'id'>) => {
     if (!data) return;
+    if (key === 'projects') {
+      update(
+        key,
+        (data[key] as Project[]).map(project => {
+          if (project.id !== id) return project;
+          return normalizeProject({ ...project, ...(item as Omit<Project, 'id'>) });
+        }) as PMOData[K],
+      );
+      return;
+    }
     update(key, (data[key] as Array<{ id: string }>).map(x => x.id === id ? { ...x, ...item } : x) as PMOData[K]);
   };
 

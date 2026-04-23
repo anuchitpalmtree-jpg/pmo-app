@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { StatusBadge, PriorityBadge } from '@/components/pmo/StatusBadge';
 import { ProgressBar } from '@/components/pmo/ProgressBar';
 import { ProjectForm } from '@/components/pmo/forms/ProjectForm';
-import { thaiDate, uid } from '@/lib/pmo-utils';
+import { calculateProjectMetrics, thaiDate, uid } from '@/lib/pmo-utils';
 import type { PMOData, Project } from '@/types/pmo';
 
 interface ProjectsProps {
@@ -73,6 +73,7 @@ export function Projects({ data, onAdd, onUpdate, onDelete }: ProjectsProps) {
           {filtered.map(p => {
             const pf = getPortfolio(p.portfolioId);
             const pg = getProgram(p.programId);
+            const metrics = calculateProjectMetrics(p);
             return (
               <div
                 key={p.id}
@@ -94,19 +95,29 @@ export function Projects({ data, onAdd, onUpdate, onDelete }: ProjectsProps) {
                   <div className="flex gap-4 items-center flex-wrap">
                     <div className="min-w-[140px]">
                       <div className="text-[11px] text-[#7A8699] mb-1">ความคืบหน้า</div>
-                      <ProgressBar value={p.progress} color={p.status === 'critical' ? '#C93B2E' : p.status === 'at-risk' ? '#D48A1A' : '#2D9F5E'} />
+                      <ProgressBar
+                        value={metrics.progress}
+                        targetValue={metrics.targetProgress}
+                        color={p.status === 'critical' ? '#C93B2E' : p.status === 'at-risk' ? '#D48A1A' : '#2D9F5E'}
+                      />
                     </div>
                     <div className="text-center">
                       <div className="text-[11px] text-[#7A8699]">งบ</div>
                       <div className="font-mono text-[13px] font-bold">{p.spent}/{p.budget} <span className="text-[10px] font-normal">ลบ.</span></div>
                     </div>
                     <div className="text-center">
-                      <div className="text-[11px] text-[#7A8699]">SPI</div>
-                      <div className={`font-mono text-sm font-bold ${p.spi < 0.9 ? 'text-[#C93B2E]' : 'text-[#2D9F5E]'}`}>{p.spi}</div>
+                      <div className="text-[11px] text-[#7A8699]">
+                        SPI
+                        <span className="ml-1 cursor-help text-[#2E86C1]" title="SPI = %ความคืบหน้าจริง ÷ %เป้าหมายการดำเนินงานปัจจุบัน">ⓘ</span>
+                      </div>
+                      <div className={`font-mono text-sm font-bold ${(metrics.spi ?? 0) < 0.9 ? 'text-[#C93B2E]' : 'text-[#2D9F5E]'}`}>{metrics.spi ?? '-'}</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-[11px] text-[#7A8699]">CPI</div>
-                      <div className={`font-mono text-sm font-bold ${p.cpi < 0.9 ? 'text-[#C93B2E]' : 'text-[#2D9F5E]'}`}>{p.cpi}</div>
+                      <div className="text-[11px] text-[#7A8699]">
+                        CPI
+                        <span className="ml-1 cursor-help text-[#2E86C1]" title="CPI = (งบประมาณ x %ความคืบหน้าจริง) ÷ มูลค่าใช้จ่ายจริง">ⓘ</span>
+                      </div>
+                      <div className={`font-mono text-sm font-bold ${(metrics.cpi ?? 0) < 0.9 ? 'text-[#C93B2E]' : 'text-[#2D9F5E]'}`}>{metrics.cpi ?? '-'}</div>
                     </div>
                     <div className="flex gap-1">
                       <Button variant="outline" size="sm" onClick={() => { setEditItem(p); setModal('edit'); }}>✏️</Button>

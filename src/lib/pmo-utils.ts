@@ -33,3 +33,55 @@ export const LEVEL_COLORS = {
   medium: { bg: '#FFF3E0', color: '#D48A1A' },
   low: { bg: '#E8F8EE', color: '#2D9F5E' },
 } as const;
+
+type ProjectLike = {
+  progress: number;
+  targetProgress: number;
+  budget: number;
+  spent: number;
+};
+
+const round2 = (value: number) => Math.round(value * 100) / 100;
+
+export const clampPercentage = (value: number) => Math.max(0, Math.min(value, 100));
+
+export const calculateProjectMetrics = (project: ProjectLike) => {
+  const progress = clampPercentage(Number(project.progress) || 0);
+  const targetProgress = clampPercentage(Number(project.targetProgress) || 0);
+  const budget = Number(project.budget) || 0;
+  const spent = Number(project.spent) || 0;
+
+  const spi = targetProgress > 0 ? round2(progress / targetProgress) : null;
+  const earnedValue = budget > 0 ? (budget * progress) / 100 : 0;
+  const cpi = spent > 0 ? round2(earnedValue / spent) : null;
+  const progressDelta = round2(progress - targetProgress);
+
+  const missingFields: string[] = [];
+  if (targetProgress <= 0) missingFields.push('เป้าหมายการดำเนินงานปัจจุบัน');
+  if (budget <= 0) missingFields.push('งบ (ลบ.)');
+  if (spent <= 0) missingFields.push('ใช้แล้ว (ลบ.)');
+
+  let autoStatus: keyof typeof STATUS_MAP = 'on-track';
+  if (!missingFields.length) {
+    if (progress >= 100) {
+      autoStatus = 'completed';
+    } else if ((spi ?? 0) < 0.85 || (cpi ?? 0) < 0.85 || progressDelta <= -10) {
+      autoStatus = 'critical';
+    } else if ((spi ?? 0) < 1 || (cpi ?? 0) < 1 || progressDelta < 0) {
+      autoStatus = 'at-risk';
+    }
+  } else {
+    autoStatus = 'planning';
+  }
+
+  return {
+    spi,
+    cpi,
+    progress,
+    targetProgress,
+    progressDelta,
+    autoStatus,
+    isComplete: missingFields.length === 0,
+    missingFields,
+  };
+};

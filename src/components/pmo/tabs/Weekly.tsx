@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusBadge } from '@/components/pmo/StatusBadge';
-import { thaiDate, weekNum, today, uid } from '@/lib/pmo-utils';
+import { calculateProjectMetrics, thaiDate, weekNum, today, uid } from '@/lib/pmo-utils';
 import type { PMOData, PMOStats, WeeklyNote } from '@/types/pmo';
 
 interface WeeklyProps {
@@ -30,10 +30,13 @@ export function Weekly({ data, stats, onSaveNote }: WeeklyProps) {
 
   const pfBudgets = data.portfolios.map(pf => {
     const projs = data.projects.filter(p => p.portfolioId === pf.id);
+    const metrics = projs.map(project => calculateProjectMetrics(project));
     const budget = projs.reduce((s, p) => s + (p.budget || 0), 0);
     const spent = projs.reduce((s, p) => s + (p.spent || 0), 0);
-    const avgSPI = projs.length ? (projs.reduce((s, p) => s + (p.spi || 0), 0) / projs.length).toFixed(2) : '-';
-    const avgCPI = projs.length ? (projs.reduce((s, p) => s + (p.cpi || 0), 0) / projs.length).toFixed(2) : '-';
+    const validSpi = metrics.map(m => m.spi).filter((v): v is number => v !== null);
+    const validCpi = metrics.map(m => m.cpi).filter((v): v is number => v !== null);
+    const avgSPI = validSpi.length ? (validSpi.reduce((s, value) => s + value, 0) / validSpi.length).toFixed(2) : '-';
+    const avgCPI = validCpi.length ? (validCpi.reduce((s, value) => s + value, 0) / validCpi.length).toFixed(2) : '-';
     return { ...pf, budget, spent, spi: avgSPI, cpi: avgCPI, disbursement: budget ? Math.round(spent / budget * 100) : 0 };
   });
 
@@ -85,15 +88,18 @@ export function Weekly({ data, stats, onSaveNote }: WeeklyProps) {
           <CardContent className="px-5 py-2">
             {criticals.length === 0 ? (
               <div className="text-center py-8 text-[#7A8699]"><div className="text-3xl mb-1">✅</div><div className="text-sm">ไม่มีโครงการ Critical</div></div>
-            ) : criticals.map(p => (
+            ) : criticals.map(p => {
+              const metrics = calculateProjectMetrics(p);
+              return (
               <div key={p.id} className="py-2.5 border-b border-[#E4E0D8] last:border-0 text-[13px]">
                 <div className="flex justify-between items-center">
                   <span className="font-bold">{p.name}</span>
                   <StatusBadge status={p.status} />
                 </div>
-                <div className="text-xs text-[#7A8699] mt-0.5">SPI: {p.spi} · CPI: {p.cpi} · งบ: {p.spent}/{p.budget} ลบ.</div>
+                <div className="text-xs text-[#7A8699] mt-0.5">SPI: {metrics.spi ?? '-'} · CPI: {metrics.cpi ?? '-'} · งบ: {p.spent}/{p.budget} ลบ.</div>
               </div>
-            ))}
+              );
+            })}
           </CardContent>
         </Card>
 

@@ -26,6 +26,7 @@ export interface Project {
   pm: string;
   status: ProjectStatus;
   progress: number;
+  targetProgress: number;
   budget: number;
   spent: number;
   startDate: string;

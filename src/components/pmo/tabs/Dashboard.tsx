@@ -5,6 +5,7 @@ import { StatusBadge } from '@/components/pmo/StatusBadge';
 import { ProgressBar } from '@/components/pmo/ProgressBar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { calculateProjectMetrics } from '@/lib/pmo-utils';
 import type { PMOData, PMOStats } from '@/types/pmo';
 
 interface DashboardProps {
@@ -17,11 +18,14 @@ export function Dashboard({ data, stats }: DashboardProps) {
 
   const portfolioStats = data.portfolios.map(pf => {
     const projs = data.projects.filter(p => p.portfolioId === pf.id);
+    const metrics = projs.map(project => calculateProjectMetrics(project));
     const budget = projs.reduce((s, p) => s + (p.budget || 0), 0);
     const spent = projs.reduce((s, p) => s + (p.spent || 0), 0);
     const avgProg = projs.length ? Math.round(projs.reduce((s, p) => s + (p.progress || 0), 0) / projs.length) : 0;
-    const avgSPI = projs.length ? (projs.reduce((s, p) => s + (p.spi || 0), 0) / projs.length).toFixed(2) : '-';
-    const avgCPI = projs.length ? (projs.reduce((s, p) => s + (p.cpi || 0), 0) / projs.length).toFixed(2) : '-';
+    const validSpi = metrics.map(m => m.spi).filter((v): v is number => v !== null);
+    const validCpi = metrics.map(m => m.cpi).filter((v): v is number => v !== null);
+    const avgSPI = validSpi.length ? (validSpi.reduce((s, value) => s + value, 0) / validSpi.length).toFixed(2) : '-';
+    const avgCPI = validCpi.length ? (validCpi.reduce((s, value) => s + value, 0) / validCpi.length).toFixed(2) : '-';
     const worst = projs.reduce<string>((w, p) => {
       const rank: Record<string, number> = { critical: 3, 'at-risk': 2, 'on-track': 1, completed: 0, planning: 0 };
       return (rank[p.status] || 0) > (rank[w] || 0) ? p.status : w;
@@ -110,17 +114,22 @@ export function Dashboard({ data, stats }: DashboardProps) {
                       <tr>{['โครงการ', 'PM', 'Progress', 'SPI', 'CPI', 'สถานะ', 'Priority'].map(h => <th key={h} className={thColClass}>{h}</th>)}</tr>
                     </thead>
                     <tbody>
-                      {criticalProjects.map(p => (
+                      {criticalProjects.map(p => {
+                        const metrics = calculateProjectMetrics(p);
+                        return (
                         <tr key={p.id} className="border-b border-[#E4E0D8]">
                           <td className={`${tdClass} font-bold`}>{p.name}</td>
                           <td className={`${tdClass} text-xs`}>{p.pm}</td>
-                          <td className={`${tdClass} min-w-[100px]`}><ProgressBar value={p.progress} color={p.status === 'critical' ? '#C93B2E' : '#D48A1A'} /></td>
-                          <td className={`${tdClass} font-mono text-xs ${p.spi < 0.9 ? 'text-[#C93B2E]' : 'text-[#2D9F5E]'}`}>{p.spi}</td>
-                          <td className={`${tdClass} font-mono text-xs ${p.cpi < 0.9 ? 'text-[#C93B2E]' : 'text-[#2D9F5E]'}`}>{p.cpi}</td>
+                          <td className={`${tdClass} min-w-[100px]`}>
+                            <ProgressBar value={metrics.progress} targetValue={metrics.targetProgress} color={p.status === 'critical' ? '#C93B2E' : '#D48A1A'} />
+                          </td>
+                          <td className={`${tdClass} font-mono text-xs ${(metrics.spi ?? 0) < 0.9 ? 'text-[#C93B2E]' : 'text-[#2D9F5E]'}`}>{metrics.spi ?? '-'}</td>
+                          <td className={`${tdClass} font-mono text-xs ${(metrics.cpi ?? 0) < 0.9 ? 'text-[#C93B2E]' : 'text-[#2D9F5E]'}`}>{metrics.cpi ?? '-'}</td>
                           <td className={tdClass}><StatusBadge status={p.status} /></td>
                           <td className={tdClass}><span className={`font-mono font-black text-xs ${p.priority === 'P1' ? 'text-[#C93B2E]' : p.priority === 'P2' ? 'text-[#D48A1A]' : 'text-[#2E86C1]'}`}>{p.priority}</span></td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

@@ -1,20 +1,40 @@
-import { Progress } from '@/components/ui/progress';
-
 interface ProgressBarProps {
   value: number;
+  targetValue?: number;
   color?: string;
 }
 
-export function ProgressBar({ value, color = '#2E86C1' }: ProgressBarProps) {
+export function ProgressBar({ value, targetValue, color = '#2E86C1' }: ProgressBarProps) {
   const normalizedValue = Math.max(0, Math.min(value, 100));
+  const normalizedTarget = typeof targetValue === 'number' ? Math.max(0, Math.min(targetValue, 100)) : null;
+  const delta = normalizedTarget === null ? null : Math.round((normalizedValue - normalizedTarget) * 100) / 100;
+  const deltaText = delta === null ? null : `${delta > 0 ? '+' : ''}${delta}%`;
+  const deltaColor = delta === null ? '#7A8699' : delta >= 0 ? '#1A7A42' : '#C93B2E';
 
   return (
-    <Progress
-      value={normalizedValue}
-      style={{ '--progress-color': color } as React.CSSProperties}
-      className="flex-nowrap items-center gap-2 [&_[data-slot='progress-indicator']]:bg-[var(--progress-color)] [&_[data-slot='progress-track']]:h-1.5 [&_[data-slot='progress-track']]:flex-1 [&_[data-slot='progress-track']]:bg-[#E4E0D8]"
-    >
-      <span className="min-w-[36px] font-mono text-xs font-bold text-[#1A2744]">{value}%</span>
-    </Progress>
+    <div className="flex items-center gap-2">
+      <div className="relative h-1.5 flex-1 rounded-full bg-[#E4E0D8] overflow-hidden">
+        {normalizedTarget !== null && (
+          <div
+            className="absolute inset-y-0 left-0 bg-[#A9B1BF]"
+            style={{ width: `${normalizedTarget}%` }}
+            aria-label="target progress"
+          />
+        )}
+        <div
+          className="absolute inset-y-0 left-0"
+          style={{ width: `${normalizedValue}%`, backgroundColor: color }}
+          aria-label="actual progress"
+        />
+      </div>
+      <div className="min-w-[70px] text-right font-mono text-xs font-bold text-[#1A2744]">
+        {normalizedValue}%
+      </div>
+      {deltaText && (
+        <div className="min-w-[52px] text-right font-mono text-[11px] font-bold" style={{ color: deltaColor }}>
+          {deltaText}
+        </div>
+      )}
+    </div>
   );
 }

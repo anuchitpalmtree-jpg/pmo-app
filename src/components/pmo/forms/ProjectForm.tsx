@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { today } from '@/lib/pmo-utils';
+import { calculateProjectMetrics, today } from '@/lib/pmo-utils';
 import { STATUS_MAP } from '@/lib/pmo-utils';
 import type { Project, Portfolio, Program } from '@/types/pmo';
 
@@ -20,13 +20,14 @@ interface ProjectFormProps {
 
 const EMPTY: Omit<Project, 'id'> = {
   name: '', programId: '', portfolioId: '', pm: '', status: 'planning',
-  progress: 0, budget: 0, spent: 0, startDate: today(), endDate: '',
-  priority: 'P3', spi: 1, cpi: 1, description: '',
+  progress: 0, targetProgress: 0, budget: 0, spent: 0, startDate: today(), endDate: '',
+  priority: 'P3', spi: 0, cpi: 0, description: '',
 };
 
 export function ProjectForm({ item, portfolios, programs, onSave, onCancel }: ProjectFormProps) {
   const [f, setF] = useState<Omit<Project, 'id'>>({ ...EMPTY, ...item });
   const set = <K extends keyof typeof f>(k: K, v: typeof f[K]) => setF(prev => ({ ...prev, [k]: v }));
+  const metrics = calculateProjectMetrics(f);
 
   const filteredPrograms = programs.filter(p => !f.portfolioId || p.portfolioId === f.portfolioId);
 
@@ -72,17 +73,14 @@ export function ProjectForm({ item, portfolios, programs, onSave, onCancel }: Pr
         </div>
         <div>
           <Label className="text-[11px] text-[#7A8699] uppercase tracking-wide">Status</Label>
-          <Select value={f.status} onValueChange={v => set('status', v as Project['status'])}>
-            <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {Object.entries(STATUS_MAP).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <div className="mt-1 rounded-md border border-[#E4E0D8] bg-[#F7F7F5] px-3 py-2 text-sm font-semibold text-[#1A2744]">
+            {STATUS_MAP[metrics.autoStatus].label} (Auto)
+          </div>
         </div>
       </div>
 
       <div className="grid grid-cols-4 gap-3">
-        {([['progress', 'ความคืบหน้า (%)'], ['budget', 'งบ (ลบ.)'], ['spent', 'ใช้แล้ว (ลบ.)'], ['spi', 'SPI']] as const).map(([key, label]) => (
+        {([['progress', 'ความคืบหน้า (%)'], ['targetProgress', 'เป้าหมายปัจจุบัน (%)'], ['budget', 'งบ (ลบ.)'], ['spent', 'ใช้แล้ว (ลบ.)']] as const).map(([key, label]) => (
           <div key={key}>
             <Label className="text-[11px] text-[#7A8699] uppercase tracking-wide">{label}</Label>
             <Input type="number" value={f[key]} onChange={e => set(key, Number(e.target.value))} className="mt-1" />
@@ -90,10 +88,20 @@ export function ProjectForm({ item, portfolios, programs, onSave, onCancel }: Pr
         ))}
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-4 gap-3">
         <div>
-          <Label className="text-[11px] text-[#7A8699] uppercase tracking-wide">CPI</Label>
-          <Input type="number" value={f.cpi} onChange={e => set('cpi', Number(e.target.value))} className="mt-1" />
+          <Label className="text-[11px] text-[#7A8699] uppercase tracking-wide">
+            SPI (คำนวณอัตโนมัติ)
+            <span className="ml-1 cursor-help text-[#2E86C1]" title="SPI = %ความคืบหน้าจริง ÷ %เป้าหมายการดำเนินงานปัจจุบัน">ⓘ</span>
+          </Label>
+          <Input value={metrics.spi ?? '-'} disabled className="mt-1 bg-[#F7F7F5]" />
+        </div>
+        <div>
+          <Label className="text-[11px] text-[#7A8699] uppercase tracking-wide">
+            CPI (คำนวณอัตโนมัติ)
+            <span className="ml-1 cursor-help text-[#2E86C1]" title="CPI = (งบประมาณ x %ความคืบหน้าจริง) ÷ มูลค่าใช้จ่ายจริง">ⓘ</span>
+          </Label>
+          <Input value={metrics.cpi ?? '-'} disabled className="mt-1 bg-[#F7F7F5]" />
         </div>
         <div>
           <Label className="text-[11px] text-[#7A8699] uppercase tracking-wide">วันเริ่ม</Label>
@@ -105,6 +113,12 @@ export function ProjectForm({ item, portfolios, programs, onSave, onCancel }: Pr
         </div>
       </div>
 
+      {!metrics.isComplete && (
+        <div className="rounded-lg border border-[#F3D5D2] bg-[#FFF3F1] px-3 py-2 text-xs text-[#A82A1F]">
+          กรุณากรอกข้อมูลให้ครบเพื่อคำนวณ SPI/CPI อัตโนมัติ: {metrics.missingFields.join(', ')}
+        </div>
+      )}
+
       <div>
         <Label className="text-[11px] text-[#7A8699] uppercase tracking-wide">รายละเอียด</Label>
         <Textarea value={f.description} onChange={e => set('description', e.target.value)} placeholder="คำอธิบายโครงการ" className="mt-1" rows={3} />
@@ -112,7 +126,16 @@ export function ProjectForm({ item, portfolios, programs, onSave, onCancel }: Pr
 
       <div className="flex justify-end gap-2 pt-2">
         <Button variant="outline" onClick={onCancel}>ยกเลิก</Button>
-        <Button onClick={() => { if (!f.name) return; onSave(f); }} className="bg-[#D4382C] text-white hover:bg-[#c03020]">💾 บันทึก</Button>
+        <Button
+          onClick={() => {
+            if (!f.name || !metrics.isComplete) return;
+            onSave({ ...f, status: metrics.autoStatus, spi: metrics.spi ?? 0, cpi: metrics.cpi ?? 0 });
+          }}
+          className="bg-[#D4382C] text-white hover:bg-[#c03020]"
+          disabled={!f.name || !metrics.isComplete}
+        >
+          💾 บันทึก
+        </Button>
       </div>
     </div>
   );

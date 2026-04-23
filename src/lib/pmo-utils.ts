@@ -59,15 +59,16 @@ export const calculateProjectMetrics = (project: ProjectLike) => {
   const missingFields: string[] = [];
   if (targetProgress <= 0) missingFields.push('เป้าหมายการดำเนินงานปัจจุบัน');
   if (budget <= 0) missingFields.push('งบ (ลบ.)');
-  if (spent <= 0) missingFields.push('ใช้แล้ว (ลบ.)');
+  if (spent < 0) missingFields.push('ใช้แล้ว (ลบ.)');
 
   let autoStatus: keyof typeof STATUS_MAP = 'on-track';
   if (!missingFields.length) {
+    const hasCpi = cpi !== null;
     if (progress >= 100) {
       autoStatus = 'completed';
-    } else if ((spi ?? 0) < 0.85 || (cpi ?? 0) < 0.85 || progressDelta <= -10) {
+    } else if ((spi ?? 0) < 0.85 || (hasCpi && cpi < 0.85) || progressDelta <= -10) {
       autoStatus = 'critical';
-    } else if ((spi ?? 0) < 1 || (cpi ?? 0) < 1 || progressDelta < 0) {
+    } else if ((spi ?? 0) < 1 || (hasCpi && cpi < 1) || progressDelta < 0) {
       autoStatus = 'at-risk';
     }
   } else {

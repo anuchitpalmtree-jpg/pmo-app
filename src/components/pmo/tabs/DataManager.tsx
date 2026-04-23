@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -21,6 +21,7 @@ type DataRow = { id: string; [k: string]: unknown };
 
 interface DataManagerProps {
   data: PMOData;
+  canEdit: boolean;
   onReplace: <K extends DataKey>(key: K, items: PMOData[K]) => void;
 }
 
@@ -36,7 +37,7 @@ const SECTION_LABELS: { key: DataKey; label: string }[] = [
 
 const pretty = (val: unknown) => JSON.stringify(val, null, 2);
 
-export function DataManager({ data, onReplace }: DataManagerProps) {
+export function DataManager({ data, canEdit, onReplace }: DataManagerProps) {
   const [section, setSection] = useState<DataKey>('portfolios');
   const [newJson, setNewJson] = useState('');
   const [error, setError] = useState('');
@@ -103,6 +104,15 @@ export function DataManager({ data, onReplace }: DataManagerProps) {
     return pretty(row).slice(0, 55).replace(/\s+/g, ' ');
   };
 
+  useEffect(() => {
+    if (!canEdit) {
+      setOpen(false);
+      setEditingId(null);
+      setEditingJson('');
+      setError('');
+    }
+  }, [canEdit]);
+
   return (
     <div className="space-y-4">
       <Card>
@@ -133,27 +143,29 @@ export function DataManager({ data, onReplace }: DataManagerProps) {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>เพิ่มข้อมูลใน {section}</CardTitle>
-          <CardDescription>
-            ใส่ JSON ของรายการใหม่ (สามารถใส่ `id` เอง หรือปล่อยให้ระบบ generate อัตโนมัติ)
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <Textarea
-            value={newJson}
-            onChange={e => setNewJson(e.target.value)}
-            rows={8}
-            placeholder={'{\n  "name": "ตัวอย่าง"\n}'}
-            className="font-mono text-xs"
-          />
-          <div className="flex items-center gap-2">
-            <Button onClick={addRow} className="bg-[#1A2744] text-white hover:bg-[#121d33]">+ Add Item</Button>
-            {error && <span className="text-xs text-red-600">{error}</span>}
-          </div>
-        </CardContent>
-      </Card>
+      {canEdit && (
+        <Card>
+          <CardHeader>
+            <CardTitle>เพิ่มข้อมูลใน {section}</CardTitle>
+            <CardDescription>
+              ใส่ JSON ของรายการใหม่ (สามารถใส่ `id` เอง หรือปล่อยให้ระบบ generate อัตโนมัติ)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Textarea
+              value={newJson}
+              onChange={e => setNewJson(e.target.value)}
+              rows={8}
+              placeholder={'{\n  "name": "ตัวอย่าง"\n}'}
+              className="font-mono text-xs"
+            />
+            <div className="flex items-center gap-2">
+              <Button onClick={addRow} className="bg-[#1A2744] text-white hover:bg-[#121d33]">+ Add Item</Button>
+              {error && <span className="text-xs text-red-600">{error}</span>}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
@@ -175,8 +187,8 @@ export function DataManager({ data, onReplace }: DataManagerProps) {
                   <TableCell className="max-w-[720px] truncate">{preview(row)}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => openEdit(row)}>Modify</Button>
-                      <Button size="sm" variant="destructive" onClick={() => removeRow(row.id)}>Delete</Button>
+                      {canEdit && <Button size="sm" variant="outline" onClick={() => openEdit(row)}>Modify</Button>}
+                      {canEdit && <Button size="sm" variant="destructive" onClick={() => removeRow(row.id)}>Delete</Button>}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -186,7 +198,7 @@ export function DataManager({ data, onReplace }: DataManagerProps) {
         </CardContent>
       </Card>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={canEdit && open} onOpenChange={setOpen}>
         <DialogContent className="max-w-[760px]">
           <DialogHeader>
             <DialogTitle>Modify Item</DialogTitle>

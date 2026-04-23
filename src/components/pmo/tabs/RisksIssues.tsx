@@ -11,6 +11,7 @@ import type { PMOData, Risk, Issue } from '@/types/pmo';
 
 interface RisksIssuesProps {
   data: PMOData;
+  canEdit: boolean;
   onAddRisk: (item: Omit<Risk, 'id'>) => void;
   onUpdateRisk: (id: string, item: Omit<Risk, 'id'>) => void;
   onDeleteRisk: (id: string) => void;
@@ -31,7 +32,7 @@ const StatusBadge = ({ value, type }: { value: string; type: 'risk' | 'issue' })
   return <span className="inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-bold" style={risk}>{value}</span>;
 };
 
-export function RisksIssues({ data, onAddRisk, onUpdateRisk, onDeleteRisk, onAddIssue, onUpdateIssue, onDeleteIssue }: RisksIssuesProps) {
+export function RisksIssues({ data, canEdit, onAddRisk, onUpdateRisk, onDeleteRisk, onAddIssue, onUpdateIssue, onDeleteIssue }: RisksIssuesProps) {
   const [tab, setTab] = useState<'risks' | 'issues'>('risks');
   const [modal, setModal] = useState<string | null>(null);
   const [editItem, setEditItem] = useState<Risk | Issue | null>(null);
@@ -59,7 +60,7 @@ export function RisksIssues({ data, onAddRisk, onUpdateRisk, onDeleteRisk, onAdd
         <Card className="border-[#E4E0D8]">
           <CardHeader className="py-3.5 px-5 border-b border-[#E4E0D8] flex-row items-center justify-between">
             <CardTitle className="text-[15px] font-black text-[#1A2744]">Risk Register</CardTitle>
-            <Button size="sm" onClick={() => setModal('add-risk')} className="bg-[#D4382C] text-white hover:bg-[#c03020]">+ เพิ่ม Risk</Button>
+            {canEdit && <Button size="sm" onClick={() => setModal('add-risk')} className="bg-[#D4382C] text-white hover:bg-[#c03020]">+ เพิ่ม Risk</Button>}
           </CardHeader>
           <CardContent className="p-0">
             {data.risks.length === 0 ? (
@@ -80,10 +81,12 @@ export function RisksIssues({ data, onAddRisk, onUpdateRisk, onDeleteRisk, onAdd
                         <td className={`${tdCls} text-xs`}>{r.owner}</td>
                         <td className={tdCls}><StatusBadge value={r.status} type="risk" /></td>
                         <td className={tdCls}>
-                          <div className="flex gap-1">
-                            <Button variant="outline" size="sm" onClick={() => { setEditItem(r); setModal('edit-risk'); }}>✏️</Button>
-                            <Button variant="outline" size="sm" onClick={() => { if (confirm('ต้องการลบ?')) onDeleteRisk(r.id); }}>🗑️</Button>
-                          </div>
+                          {canEdit && (
+                            <div className="flex gap-1">
+                              <Button variant="outline" size="sm" onClick={() => { setEditItem(r); setModal('edit-risk'); }}>✏️</Button>
+                              <Button variant="outline" size="sm" onClick={() => { if (confirm('ต้องการลบ?')) onDeleteRisk(r.id); }}>🗑️</Button>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -97,7 +100,7 @@ export function RisksIssues({ data, onAddRisk, onUpdateRisk, onDeleteRisk, onAdd
         <Card className="border-[#E4E0D8]">
           <CardHeader className="py-3.5 px-5 border-b border-[#E4E0D8] flex-row items-center justify-between">
             <CardTitle className="text-[15px] font-black text-[#1A2744]">Issue Log</CardTitle>
-            <Button size="sm" onClick={() => setModal('add-issue')} className="bg-[#D4382C] text-white hover:bg-[#c03020]">+ เพิ่ม Issue</Button>
+            {canEdit && <Button size="sm" onClick={() => setModal('add-issue')} className="bg-[#D4382C] text-white hover:bg-[#c03020]">+ เพิ่ม Issue</Button>}
           </CardHeader>
           <CardContent className="p-0">
             {data.issues.length === 0 ? (
@@ -118,10 +121,12 @@ export function RisksIssues({ data, onAddRisk, onUpdateRisk, onDeleteRisk, onAdd
                         <td className={tdCls}><StatusBadge value={i.status} type="issue" /></td>
                         <td className={`${tdCls} text-xs max-w-[200px] truncate`}>{i.resolution || '-'}</td>
                         <td className={tdCls}>
-                          <div className="flex gap-1">
-                            <Button variant="outline" size="sm" onClick={() => { setEditItem(i); setModal('edit-issue'); }}>✏️</Button>
-                            <Button variant="outline" size="sm" onClick={() => { if (confirm('ต้องการลบ?')) onDeleteIssue(i.id); }}>🗑️</Button>
-                          </div>
+                          {canEdit && (
+                            <div className="flex gap-1">
+                              <Button variant="outline" size="sm" onClick={() => { setEditItem(i); setModal('edit-issue'); }}>✏️</Button>
+                              <Button variant="outline" size="sm" onClick={() => { if (confirm('ต้องการลบ?')) onDeleteIssue(i.id); }}>🗑️</Button>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -133,14 +138,14 @@ export function RisksIssues({ data, onAddRisk, onUpdateRisk, onDeleteRisk, onAdd
         </Card>
       )}
 
-      <Dialog open={modal === 'add-risk'} onOpenChange={open => !open && setModal(null)}>
+      <Dialog open={canEdit && modal === 'add-risk'} onOpenChange={open => !open && setModal(null)}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-auto">
           <DialogHeader><DialogTitle>เพิ่ม Risk ใหม่</DialogTitle></DialogHeader>
           <RiskForm projects={data.projects} onSave={f => { onAddRisk(f); setModal(null); }} onCancel={() => setModal(null)} />
         </DialogContent>
       </Dialog>
 
-      <Dialog open={modal === 'edit-risk'} onOpenChange={open => { if (!open) { setModal(null); setEditItem(null); } }}>
+      <Dialog open={canEdit && modal === 'edit-risk'} onOpenChange={open => { if (!open) { setModal(null); setEditItem(null); } }}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-auto">
           <DialogHeader><DialogTitle>แก้ไข Risk</DialogTitle></DialogHeader>
           {editItem && (
@@ -151,14 +156,14 @@ export function RisksIssues({ data, onAddRisk, onUpdateRisk, onDeleteRisk, onAdd
         </DialogContent>
       </Dialog>
 
-      <Dialog open={modal === 'add-issue'} onOpenChange={open => !open && setModal(null)}>
+      <Dialog open={canEdit && modal === 'add-issue'} onOpenChange={open => !open && setModal(null)}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-auto">
           <DialogHeader><DialogTitle>เพิ่ม Issue ใหม่</DialogTitle></DialogHeader>
           <IssueForm projects={data.projects} onSave={f => { onAddIssue(f); setModal(null); }} onCancel={() => setModal(null)} />
         </DialogContent>
       </Dialog>
 
-      <Dialog open={modal === 'edit-issue'} onOpenChange={open => { if (!open) { setModal(null); setEditItem(null); } }}>
+      <Dialog open={canEdit && modal === 'edit-issue'} onOpenChange={open => { if (!open) { setModal(null); setEditItem(null); } }}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-auto">
           <DialogHeader><DialogTitle>แก้ไข Issue</DialogTitle></DialogHeader>
           {editItem && (

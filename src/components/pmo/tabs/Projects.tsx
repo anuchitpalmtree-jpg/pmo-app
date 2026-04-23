@@ -11,12 +11,13 @@ import type { PMOData, Project } from '@/types/pmo';
 
 interface ProjectsProps {
   data: PMOData;
+  canEdit: boolean;
   onAdd: (item: Omit<Project, 'id'>) => void;
   onUpdate: (id: string, item: Omit<Project, 'id'>) => void;
   onDelete: (id: string) => void;
 }
 
-export function Projects({ data, onAdd, onUpdate, onDelete }: ProjectsProps) {
+export function Projects({ data, canEdit, onAdd, onUpdate, onDelete }: ProjectsProps) {
   const [filter, setFilter] = useState({ status: '', portfolio: '', search: '' });
   const [modal, setModal] = useState<'add' | 'edit' | null>(null);
   const [editItem, setEditItem] = useState<Project | null>(null);
@@ -40,7 +41,9 @@ export function Projects({ data, onAdd, onUpdate, onDelete }: ProjectsProps) {
           <div className="text-xl font-black text-[#1A2744]">จัดการโครงการ</div>
           <div className="text-sm text-[#7A8699]">{data.projects.length} โครงการทั้งหมด</div>
         </div>
-        <Button onClick={() => setModal('add')} className="bg-[#D4382C] text-white hover:bg-[#c03020]">+ เพิ่มโครงการใหม่</Button>
+        {canEdit && (
+          <Button onClick={() => setModal('add')} className="bg-[#D4382C] text-white hover:bg-[#c03020]">+ เพิ่มโครงการใหม่</Button>
+        )}
       </div>
 
       <div className="flex gap-2 mb-4 flex-wrap">
@@ -119,10 +122,12 @@ export function Projects({ data, onAdd, onUpdate, onDelete }: ProjectsProps) {
                       </div>
                       <div className={`font-mono text-sm font-bold ${(metrics.cpi ?? 0) < 0.9 ? 'text-[#C93B2E]' : 'text-[#2D9F5E]'}`}>{metrics.cpi ?? '-'}</div>
                     </div>
-                    <div className="flex gap-1">
-                      <Button variant="outline" size="sm" onClick={() => { setEditItem(p); setModal('edit'); }}>✏️</Button>
-                      <Button variant="outline" size="sm" onClick={() => { if (confirm('ต้องการลบรายการนี้?')) onDelete(p.id); }}>🗑️</Button>
-                    </div>
+                    {canEdit && (
+                      <div className="flex gap-1">
+                        <Button variant="outline" size="sm" onClick={() => { setEditItem(p); setModal('edit'); }}>✏️</Button>
+                        <Button variant="outline" size="sm" onClick={() => { if (confirm('ต้องการลบรายการนี้?')) onDelete(p.id); }}>🗑️</Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -131,14 +136,14 @@ export function Projects({ data, onAdd, onUpdate, onDelete }: ProjectsProps) {
         </div>
       )}
 
-      <Dialog open={modal === 'add'} onOpenChange={open => !open && setModal(null)}>
+      <Dialog open={canEdit && modal === 'add'} onOpenChange={open => !open && setModal(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-auto">
           <DialogHeader><DialogTitle>เพิ่มโครงการใหม่</DialogTitle></DialogHeader>
           <ProjectForm portfolios={data.portfolios} programs={data.programs} onSave={f => { onAdd(f); setModal(null); }} onCancel={() => setModal(null)} />
         </DialogContent>
       </Dialog>
 
-      <Dialog open={modal === 'edit' && !!editItem} onOpenChange={open => { if (!open) { setModal(null); setEditItem(null); } }}>
+      <Dialog open={canEdit && modal === 'edit' && !!editItem} onOpenChange={open => { if (!open) { setModal(null); setEditItem(null); } }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-auto">
           <DialogHeader><DialogTitle>แก้ไขโครงการ</DialogTitle></DialogHeader>
           {editItem && (

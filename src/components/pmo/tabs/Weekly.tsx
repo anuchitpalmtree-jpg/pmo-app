@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -12,10 +12,11 @@ import type { PMOData, PMOStats, WeeklyNote } from '@/types/pmo';
 interface WeeklyProps {
   data: PMOData;
   stats: PMOStats;
+  canEdit: boolean;
   onSaveNote: (notes: WeeklyNote[]) => void;
 }
 
-export function Weekly({ data, stats, onSaveNote }: WeeklyProps) {
+export function Weekly({ data, stats, canEdit, onSaveNote }: WeeklyProps) {
   const currentNote = data.weeklyNotes?.[0] ?? {} as WeeklyNote;
   const [editing, setEditing] = useState(false);
   const [note, setNote] = useState<Partial<WeeklyNote>>(currentNote);
@@ -41,6 +42,7 @@ export function Weekly({ data, stats, onSaveNote }: WeeklyProps) {
   });
 
   const saveNote = () => {
+    if (!canEdit) return;
     const notes = [...(data.weeklyNotes ?? [])];
     if (notes[0]) {
       notes[0] = { ...notes[0], ...note };
@@ -53,6 +55,10 @@ export function Weekly({ data, stats, onSaveNote }: WeeklyProps) {
 
   const thCls = 'py-2.5 px-3 text-[11px] font-bold text-[#7A8699] uppercase border-b-2 border-[#E4E0D8] bg-[#F0EDE6]';
   const tdCls = 'py-2.5 px-3 text-[13px]';
+
+  useEffect(() => {
+    if (!canEdit) setEditing(false);
+  }, [canEdit]);
 
   return (
     <div>
@@ -166,7 +172,7 @@ export function Weekly({ data, stats, onSaveNote }: WeeklyProps) {
           {editing ? (
             <Button size="sm" onClick={saveNote} className="bg-[#2D9F5E] text-white hover:bg-[#248a50]">💾 บันทึก</Button>
           ) : (
-            <Button variant="outline" size="sm" onClick={() => setEditing(true)}>✏️ แก้ไข</Button>
+            canEdit && <Button variant="outline" size="sm" onClick={() => setEditing(true)}>✏️ แก้ไข</Button>
           )}
         </CardHeader>
         <CardContent className="p-5">

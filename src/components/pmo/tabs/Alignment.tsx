@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,10 +11,11 @@ import type { PMOData } from '@/types/pmo';
 
 interface AlignmentProps {
   data: PMOData;
+  canEdit: boolean;
   onReplace: <K extends keyof PMOData>(key: K, items: PMOData[K]) => void;
 }
 
-export function Alignment({ data, onReplace }: AlignmentProps) {
+export function Alignment({ data, canEdit, onReplace }: AlignmentProps) {
   const [isEditing, setIsEditing] = useState(false);
   const getPortfolio = (id: string) => data.portfolios.find(p => p.id === id);
   const goals = useMemo(
@@ -67,6 +68,10 @@ export function Alignment({ data, onReplace }: AlignmentProps) {
     onReplace('projectGoalAlignments', [...data.projectGoalAlignments, { id: uid(), projectId, goalId }]);
   };
 
+  useEffect(() => {
+    if (!canEdit) setIsEditing(false);
+  }, [canEdit]);
+
   return (
     <div>
       <div className="mb-5 flex items-start justify-between gap-3">
@@ -74,12 +79,14 @@ export function Alignment({ data, onReplace }: AlignmentProps) {
           <div className="text-xl font-black text-[#1A2744] mb-1">🎯 Project Alignment</div>
           <div className="text-sm text-[#7A8699]">ความสอดคล้องของโครงการกับยุทธศาสตร์องค์กร</div>
         </div>
-        <Button
-          onClick={() => setIsEditing(v => !v)}
-          className={isEditing ? 'bg-[#1A2744] text-white hover:bg-[#121d33]' : 'bg-[#D4382C] text-white hover:bg-[#c03020]'}
-        >
-          {isEditing ? 'ปิดการแก้ไข' : 'Edit'}
-        </Button>
+        {canEdit && (
+          <Button
+            onClick={() => setIsEditing(v => !v)}
+            className={isEditing ? 'bg-[#1A2744] text-white hover:bg-[#121d33]' : 'bg-[#D4382C] text-white hover:bg-[#c03020]'}
+          >
+            {isEditing ? 'ปิดการแก้ไข' : 'Edit'}
+          </Button>
+        )}
       </div>
 
       <Card className="mb-4 border-[#E4E0D8]">
@@ -143,7 +150,8 @@ export function Alignment({ data, onReplace }: AlignmentProps) {
                         <td key={goal.id} className={`${tdCls} text-center`}>
                           <button
                             type="button"
-                            onClick={() => toggleLink(p.id, goal.id)}
+                            onClick={() => canEdit && toggleLink(p.id, goal.id)}
+                            disabled={!canEdit}
                             className={`text-base leading-none transition-opacity ${linked ? 'text-[#1A2744] opacity-100' : 'text-[#7A8699] opacity-70 hover:opacity-100'}`}
                             title={linked ? 'คลิกเพื่อเอาออกจากความสอดคล้อง' : 'คลิกเพื่อกำหนดความสอดคล้อง'}
                           >
@@ -163,7 +171,7 @@ export function Alignment({ data, onReplace }: AlignmentProps) {
         </CardContent>
       </Card>
 
-      {isEditing && (
+      {canEdit && isEditing && (
         <Card className="mt-4 border-[#E4E0D8]">
           <CardHeader className="py-3.5 px-5 border-b border-[#E4E0D8]">
             <CardTitle className="text-[15px] font-black text-[#1A2744]">Alignment Editor (ส่วนปรับแก้ไข)</CardTitle>

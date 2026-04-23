@@ -11,12 +11,13 @@ import type { PMOData, Milestone } from '@/types/pmo';
 
 interface MilestonesTabProps {
   data: PMOData;
+  canEdit: boolean;
   onAdd: (item: Omit<Milestone, 'id'>) => void;
   onUpdate: (id: string, item: Omit<Milestone, 'id'>) => void;
   onDelete: (id: string) => void;
 }
 
-export function MilestonesTab({ data, onAdd, onUpdate, onDelete }: MilestonesTabProps) {
+export function MilestonesTab({ data, canEdit, onAdd, onUpdate, onDelete }: MilestonesTabProps) {
   const [modal, setModal] = useState<'add' | 'edit' | null>(null);
   const [editItem, setEditItem] = useState<Milestone | null>(null);
 
@@ -39,7 +40,7 @@ export function MilestonesTab({ data, onAdd, onUpdate, onDelete }: MilestonesTab
           <div className="text-xl font-black text-[#1A2744]">Milestones Tracker</div>
           <div className="text-sm text-[#7A8699]">ติดตาม Milestone ของทุกโครงการ</div>
         </div>
-        <Button onClick={() => setModal('add')} className="bg-[#D4382C] text-white hover:bg-[#c03020]">+ เพิ่ม Milestone</Button>
+        {canEdit && <Button onClick={() => setModal('add')} className="bg-[#D4382C] text-white hover:bg-[#c03020]">+ เพิ่ม Milestone</Button>}
       </div>
 
       <Card className="border-[#E4E0D8]">
@@ -60,10 +61,12 @@ export function MilestonesTab({ data, onAdd, onUpdate, onDelete }: MilestonesTab
                       <td className={tdCls}>{m.title}</td>
                       <td className={tdCls}><StatusBadge status={milestoneStatusMap(m.status)} /></td>
                       <td className={tdCls}>
-                        <div className="flex gap-1">
-                          <Button variant="outline" size="sm" onClick={() => { setEditItem(m); setModal('edit'); }}>✏️</Button>
-                          <Button variant="outline" size="sm" onClick={() => { if (confirm('ต้องการลบ?')) onDelete(m.id); }}>🗑️</Button>
-                        </div>
+                        {canEdit && (
+                          <div className="flex gap-1">
+                            <Button variant="outline" size="sm" onClick={() => { setEditItem(m); setModal('edit'); }}>✏️</Button>
+                            <Button variant="outline" size="sm" onClick={() => { if (confirm('ต้องการลบ?')) onDelete(m.id); }}>🗑️</Button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -74,14 +77,14 @@ export function MilestonesTab({ data, onAdd, onUpdate, onDelete }: MilestonesTab
         </CardContent>
       </Card>
 
-      <Dialog open={modal === 'add'} onOpenChange={open => !open && setModal(null)}>
+      <Dialog open={canEdit && modal === 'add'} onOpenChange={open => !open && setModal(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>เพิ่ม Milestone</DialogTitle></DialogHeader>
           <MilestoneForm projects={data.projects} onSave={f => { onAdd(f); setModal(null); }} onCancel={() => setModal(null)} />
         </DialogContent>
       </Dialog>
 
-      <Dialog open={modal === 'edit' && !!editItem} onOpenChange={open => { if (!open) { setModal(null); setEditItem(null); } }}>
+      <Dialog open={canEdit && modal === 'edit' && !!editItem} onOpenChange={open => { if (!open) { setModal(null); setEditItem(null); } }}>
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>แก้ไข Milestone</DialogTitle></DialogHeader>
           {editItem && (

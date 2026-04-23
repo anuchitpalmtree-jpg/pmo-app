@@ -9,7 +9,12 @@ import { MilestonesTab } from '@/components/pmo/tabs/MilestonesTab';
 import { Weekly } from '@/components/pmo/tabs/Weekly';
 import { Alignment } from '@/components/pmo/tabs/Alignment';
 import { DataManager } from '@/components/pmo/tabs/DataManager';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { storageGet, storageSet } from '@/lib/storage';
+import { validateEditCredential } from '@/lib/edit-auth';
 import {
   DEFAULT_PMO_DATA,
   ALIGNMENT_SETTINGS_SEED,
@@ -22,6 +27,11 @@ import type { PMOData, PMOStats, Project, Risk, Issue, Milestone, WeeklyNote } f
 export default function Page() {
   const [data, setData] = useState<PMOData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [authError, setAuthError] = useState('');
 
   const normalizeProjectFields = useCallback((project: Omit<Project, 'id'>): Omit<Project, 'id'> => {
     const targetProgress = typeof project.targetProgress === 'number' ? project.targetProgress : project.progress;
@@ -78,9 +88,9 @@ export default function Page() {
   }, []);
 
   const update = useCallback(<K extends keyof PMOData>(key: K, items: PMOData[K]) => {
-    if (!data) return;
+    if (!data || !isEditMode) return;
     save({ ...data, [key]: items });
-  }, [data, save]);
+  }, [data, isEditMode, save]);
 
   const stats = useMemo<PMOStats>(() => {
     if (!data) return { total: 0, totalBudget: 0, totalSpent: 0, avgSPI: '0', avgCPI: '0', byStatus: {}, disbursement: 0 };
@@ -98,7 +108,7 @@ export default function Page() {
   }, [data]);
 
   const addItem = <K extends keyof PMOData>(key: K, item: Omit<PMOData[K][number], 'id'>) => {
-    if (!data) return;
+    if (!data || !isEditMode) return;
     if (key === 'projects') {
       const normalizedItem = normalizeProjectFields(item as Omit<Project, 'id'>);
       update(key, [...data[key], { ...normalizedItem, id: uid() }] as PMOData[K]);
@@ -108,7 +118,7 @@ export default function Page() {
   };
 
   const updateItem = <K extends keyof PMOData>(key: K, id: string, item: Omit<PMOData[K][number], 'id'>) => {
-    if (!data) return;
+    if (!data || !isEditMode) return;
     if (key === 'projects') {
       update(
         key,
@@ -123,8 +133,26 @@ export default function Page() {
   };
 
   const deleteItem = <K extends keyof PMOData>(key: K, id: string) => {
-    if (!data) return;
+    if (!data || !isEditMode) return;
     update(key, (data[key] as Array<{ id: string }>).filter(x => x.id !== id) as PMOData[K]);
+  };
+
+  const handleLogOn = () => {
+    if (validateEditCredential(username.trim(), password)) {
+      setIsEditMode(true);
+      setAuthOpen(false);
+      setAuthError('');
+      setPassword('');
+      return;
+    }
+    setAuthError('Username หรือ Password ไม่ถูกต้อง');
+  };
+
+  const handleLogOff = () => {
+    setIsEditMode(false);
+    setUsername('');
+    setPassword('');
+    setAuthError('');
   };
 
   if (loading) {
@@ -152,6 +180,14 @@ export default function Page() {
           </div>
         </div>
         <div className="flex items-center gap-4 text-xs">
+          <span className={`px-2 py-1 rounded-md font-semibold ${isEditMode ? 'bg-[#2D9F5E] text-white' : 'bg-white/20 text-white'}`}>
+            {isEditMode ? 'Edit Mode' : 'View Only'}
+          </span>
+          {isEditMode ? (
+            <Button size="sm" variant="secondary" className="h-8 px-3" onClick={handleLogOff}>Log off</Button>
+          ) : (
+            <Button size="sm" className="h-8 px-3 bg-[#D4382C] text-white hover:bg-[#c03020]" onClick={() => setAuthOpen(true)}>Log on</Button>
+          )}
           <span className="opacity-70">📅 Wk{weekNum()}/{new Date().getFullYear() + 543}</span>
         </div>
       </div>
@@ -186,6 +222,7 @@ export default function Page() {
           <TabsContent value="projects" className="mt-0">
             <Projects
               data={data}
+              canEdit={isEditMode}
               onAdd={f => addItem('projects', f as Omit<Project, 'id'>)}
               onUpdate={(id, f) => updateItem('projects', id, f as Omit<Project, 'id'>)}
               onDelete={id => deleteItem('projects', id)}
@@ -195,6 +232,7 @@ export default function Page() {
           <TabsContent value="risks" className="mt-0">
             <RisksIssues
               data={data}
+              canEdit={isEditMode}
               onAddRisk={f => addItem('risks', f)}
               onUpdateRisk={(id, f) => updateItem('risks', id, f)}
               onDeleteRisk={id => deleteItem('risks', id)}
@@ -207,6 +245,7 @@ export default function Page() {
           <TabsContent value="milestones" className="mt-0">
             <MilestonesTab
               data={data}
+              canEdit={isEditMode}
               onAdd={f => addItem('milestones', f)}
               onUpdate={(id, f) => updateItem('milestones', id, f)}
               onDelete={id => deleteItem('milestones', id)}
@@ -217,19 +256,55 @@ export default function Page() {
             <Weekly
               data={data}
               stats={stats}
+              canEdit={isEditMode}
               onSaveNote={notes => update('weeklyNotes', notes)}
             />
           </TabsContent>
 
           <TabsContent value="alignment" className="mt-0">
-            <Alignment data={data} onReplace={update} />
+            <Alignment data={data} canEdit={isEditMode} onReplace={update} />
           </TabsContent>
 
           <TabsContent value="data-manager" className="mt-0">
-            <DataManager data={data} onReplace={update} />
+            <DataManager data={data} canEdit={isEditMode} onReplace={update} />
           </TabsContent>
         </div>
       </Tabs>
+
+      <Dialog open={authOpen} onOpenChange={setAuthOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Log on เพื่อแก้ไขข้อมูล</DialogTitle>
+            <DialogDescription>ระบบอยู่ใน View Only จนกว่าจะเข้าสู่ Edit Mode</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                value={username}
+                onChange={e => setUsername(e.target.value)}
+                placeholder="Username"
+              />
+            </div>
+            <div>
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="Password"
+                onKeyDown={e => {
+                  if (e.key === 'Enter') handleLogOn();
+                }}
+              />
+            </div>
+            {authError && <p className="text-xs text-red-600">{authError}</p>}
+            <Button onClick={handleLogOn} className="w-full bg-[#1A2744] text-white hover:bg-[#121d33]">Log on</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

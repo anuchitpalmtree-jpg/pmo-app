@@ -169,11 +169,11 @@ export default function Page() {
         <div className="text-center">
           <div className="mx-auto mb-3 h-12 w-16 overflow-hidden rounded-md bg-white/60">
             <Image
-              src="/logo.png"
+              src="/logo.svg"
               alt="Thailand Post logo"
               width={300}
               height={200}
-              className="h-full w-full object-cover object-top"
+              className="h-full w-full object-contain"
               priority
             />
           </div>
@@ -190,13 +190,13 @@ export default function Page() {
       {/* Top Bar */}
       <div className="bg-[#1A2744] text-white px-6 h-14 flex items-center justify-between sticky top-0 z-50 shadow-lg">
         <div className="flex items-center gap-3">
-          <div className="h-9 w-12 overflow-hidden rounded-md bg-white/85 ring-1 ring-white/20">
+          <div className="h-10 w-16 overflow-hidden rounded-md bg-white/90 ring-1 ring-white/20">
             <Image
-              src="/logo.png"
+              src="/logo.svg"
               alt="Thailand Post logo"
               width={300}
               height={200}
-              className="h-full w-full object-cover object-top"
+              className="h-full w-full object-contain"
               priority
             />
           </div>

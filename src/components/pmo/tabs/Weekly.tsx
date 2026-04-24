@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusBadge } from '@/components/pmo/StatusBadge';
 import { calculateProjectMetrics, thaiDate, weekNum, today, uid } from '@/lib/pmo-utils';
+import { downloadWeeklyExecutiveDoc } from '@/lib/weekly-doc';
 import type { PMOData, PMOStats, WeeklyNote } from '@/types/pmo';
 
 interface WeeklyProps {
@@ -63,7 +64,12 @@ export function Weekly({ data, stats, canEdit, onSaveNote }: WeeklyProps) {
   return (
     <div>
       <div className="text-xl font-black text-[#1A2744] mb-1">📋 รายงานประจำสัปดาห์</div>
-      <div className="text-sm text-[#7A8699] mb-5">Weekly Executive Report — นำเสนอต่อผู้บริหารทุกวันอังคารเช้า</div>
+      <div className="flex items-center justify-between mb-5 gap-3">
+        <div className="text-sm text-[#7A8699]">Weekly Executive Report — นำเสนอต่อผู้บริหารทุกวันอังคารเช้า</div>
+        <Button onClick={() => downloadWeeklyExecutiveDoc(data)} className="bg-[#1A2744] text-white hover:bg-[#121d33]">
+          Generate รายงาน .doc
+        </Button>
+      </div>
 
       {/* Banner */}
       <div className="rounded-xl p-6 text-white mb-5" style={{ background: 'linear-gradient(135deg, #1A2744 0%, #2C4270 100%)' }}>

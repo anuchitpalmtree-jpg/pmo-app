@@ -22,6 +22,13 @@ const EMPTY: Omit<Project, 'id'> = {
   name: '', programId: '', portfolioId: '', pm: '', status: 'planning',
   progress: 0, targetProgress: 0, budget: 0, spent: 0, startDate: today(), endDate: '',
   priority: 'P3', spi: 0, cpi: 0, description: '',
+  previousWeekProgress: 0,
+  weeklyProgressSummary: '',
+  currentStageStatus: '',
+  blockersAndMitigation: '',
+  executiveSupportNeeded: '',
+  requiredActions: '',
+  managementConsiderations: '',
 };
 
 export function ProjectForm({ item, portfolios, programs, onSave, onCancel }: ProjectFormProps) {
@@ -80,7 +87,7 @@ export function ProjectForm({ item, portfolios, programs, onSave, onCancel }: Pr
       </div>
 
       <div className="grid grid-cols-4 gap-3">
-        {([['progress', 'ความคืบหน้า (%)'], ['targetProgress', 'เป้าหมายปัจจุบัน (%)'], ['budget', 'งบ (ลบ.)'], ['spent', 'ใช้แล้ว (ลบ.)']] as const).map(([key, label]) => (
+        {([['progress', 'ความคืบหน้าจริง (%)'], ['targetProgress', 'เป้าหมายตามแผน (%)'], ['budget', 'งบ (ลบ.)'], ['spent', 'ใช้แล้ว (ลบ.)']] as const).map(([key, label]) => (
           <div key={key}>
             <Label className="text-[11px] text-[#7A8699] uppercase tracking-wide">{label}</Label>
             <Input type="number" value={f[key]} onChange={e => set(key, Number(e.target.value))} className="mt-1" />
@@ -88,7 +95,7 @@ export function ProjectForm({ item, portfolios, programs, onSave, onCancel }: Pr
         ))}
       </div>
 
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-5 gap-3">
         <div>
           <Label className="text-[11px] text-[#7A8699] uppercase tracking-wide">
             SPI (คำนวณอัตโนมัติ)
@@ -102,6 +109,10 @@ export function ProjectForm({ item, portfolios, programs, onSave, onCancel }: Pr
             <span className="ml-1 cursor-help text-[#2E86C1]" title="CPI = (งบประมาณ x %ความคืบหน้าจริง) ÷ มูลค่าใช้จ่ายจริง">ⓘ</span>
           </Label>
           <Input value={metrics.cpi ?? '-'} disabled className="mt-1 bg-[#F7F7F5]" />
+        </div>
+        <div>
+          <Label className="text-[11px] text-[#7A8699] uppercase tracking-wide">ความคืบหน้าสัปดาห์ก่อน (%)</Label>
+          <Input type="number" value={f.previousWeekProgress ?? 0} onChange={e => set('previousWeekProgress', Number(e.target.value))} className="mt-1" />
         </div>
         <div>
           <Label className="text-[11px] text-[#7A8699] uppercase tracking-wide">วันเริ่ม</Label>
@@ -122,6 +133,31 @@ export function ProjectForm({ item, portfolios, programs, onSave, onCancel }: Pr
       <div>
         <Label className="text-[11px] text-[#7A8699] uppercase tracking-wide">รายละเอียด</Label>
         <Textarea value={f.description} onChange={e => set('description', e.target.value)} placeholder="คำอธิบายโครงการ" className="mt-1" rows={3} />
+      </div>
+
+      <div>
+        <Label className="text-[11px] text-[#7A8699] uppercase tracking-wide">สรุปความคืบหน้ารายสัปดาห์</Label>
+        <Textarea value={f.weeklyProgressSummary ?? ''} onChange={e => set('weeklyProgressSummary', e.target.value)} placeholder="เช่น ความคืบหน้าเพิ่มขึ้นจากสัปดาห์ก่อน หรือเหตุผลที่คืบหน้าเท่าเดิม" className="mt-1" rows={2} />
+      </div>
+      <div>
+        <Label className="text-[11px] text-[#7A8699] uppercase tracking-wide">สถานะขั้นตอนปัจจุบัน</Label>
+        <Textarea value={f.currentStageStatus ?? ''} onChange={e => set('currentStageStatus', e.target.value)} placeholder="รายละเอียดสถานะงาน ณ ปัจจุบัน" className="mt-1" rows={3} />
+      </div>
+      <div>
+        <Label className="text-[11px] text-[#7A8699] uppercase tracking-wide">ปัญหา/อุปสรรค และแนวทางแก้ไข</Label>
+        <Textarea value={f.blockersAndMitigation ?? ''} onChange={e => set('blockersAndMitigation', e.target.value)} placeholder="ระบุปัญหา ความเสี่ยง และมาตรการแก้ไข" className="mt-1" rows={3} />
+      </div>
+      <div>
+        <Label className="text-[11px] text-[#7A8699] uppercase tracking-wide">สิ่งที่ขอรับการสนับสนุนจากผู้บริหาร</Label>
+        <Textarea value={f.executiveSupportNeeded ?? ''} onChange={e => set('executiveSupportNeeded', e.target.value)} placeholder="สิ่งที่ต้องการให้ผู้บริหารสนับสนุน/สั่งการ" className="mt-1" rows={2} />
+      </div>
+      <div>
+        <Label className="text-[11px] text-[#7A8699] uppercase tracking-wide">เรื่องที่จำเป็นต้องดำเนินการ</Label>
+        <Textarea value={f.requiredActions ?? ''} onChange={e => set('requiredActions', e.target.value)} placeholder="Action ที่ต้องเร่งดำเนินการ" className="mt-1" rows={2} />
+      </div>
+      <div>
+        <Label className="text-[11px] text-[#7A8699] uppercase tracking-wide">ข้อพิจารณา</Label>
+        <Textarea value={f.managementConsiderations ?? ''} onChange={e => set('managementConsiderations', e.target.value)} placeholder="ข้อเสนอเพื่อประกอบการพิจารณาของผู้บริหาร" className="mt-1" rows={2} />
       </div>
 
       <div className="flex justify-end gap-2 pt-2">

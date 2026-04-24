@@ -35,6 +35,13 @@ export interface Project {
   spi: number;
   cpi: number;
   description: string;
+  previousWeekProgress?: number;
+  weeklyProgressSummary?: string;
+  currentStageStatus?: string;
+  blockersAndMitigation?: string;
+  executiveSupportNeeded?: string;
+  requiredActions?: string;
+  managementConsiderations?: string;
 }
 
 export interface Risk {

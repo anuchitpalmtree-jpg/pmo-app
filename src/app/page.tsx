@@ -39,6 +39,13 @@ export default function Page() {
     return {
       ...project,
       targetProgress,
+      previousWeekProgress: typeof project.previousWeekProgress === 'number' ? project.previousWeekProgress : project.progress,
+      weeklyProgressSummary: project.weeklyProgressSummary ?? '',
+      currentStageStatus: project.currentStageStatus ?? '',
+      blockersAndMitigation: project.blockersAndMitigation ?? '',
+      executiveSupportNeeded: project.executiveSupportNeeded ?? '',
+      requiredActions: project.requiredActions ?? '',
+      managementConsiderations: project.managementConsiderations ?? '',
       spi: metrics.spi ?? 0,
       cpi: metrics.cpi ?? 0,
       status: metrics.autoStatus,

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import Image from 'next/image';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dashboard } from '@/components/pmo/tabs/Dashboard';
 import { Projects } from '@/components/pmo/tabs/Projects';
@@ -166,7 +167,16 @@ export default function Page() {
     return (
       <div className="flex items-center justify-center h-screen bg-[#F0EDE6]">
         <div className="text-center">
-          <div className="text-5xl mb-3">📮</div>
+          <div className="mx-auto mb-3 h-12 w-16 overflow-hidden rounded-md bg-white/60">
+            <Image
+              src="/logo.png"
+              alt="Thailand Post logo"
+              width={300}
+              height={200}
+              className="h-full w-full object-cover object-top"
+              priority
+            />
+          </div>
           <div className="text-lg font-bold text-[#1A2744]">กำลังโหลด PMO Dashboard...</div>
         </div>
       </div>
@@ -180,7 +190,16 @@ export default function Page() {
       {/* Top Bar */}
       <div className="bg-[#1A2744] text-white px-6 h-14 flex items-center justify-between sticky top-0 z-50 shadow-lg">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-[#D4382C] rounded-lg flex items-center justify-center font-black text-sm tracking-tight">TH</div>
+          <div className="h-9 w-12 overflow-hidden rounded-md bg-white/85 ring-1 ring-white/20">
+            <Image
+              src="/logo.png"
+              alt="Thailand Post logo"
+              width={300}
+              height={200}
+              className="h-full w-full object-cover object-top"
+              priority
+            />
+          </div>
           <div>
             <div className="font-bold text-[15px]">ไปรษณีย์ไทย — PMO</div>
             <div className="text-[10px] opacity-60 tracking-widest">PROJECT MANAGEMENT OFFICE</div>
